@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-train_pd = pd.read_csv('train.csv', dtype={'acoustic_data': np.int16, 'time_to_failure': np.float64})
+dataset_pd = pd.read_csv('train.csv', dtype={'acoustic_data': np.int16, 'time_to_failure': np.float64})
 
 import torch
 import torch.nn as nn
@@ -17,9 +17,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 feature_size = 1
 batch_size = 64
-seq_length = 128
+seq_length = 1024
 hidden_size = 64
-step_length = 32
+step_length = 128
 
 
 class GRUNet(nn.Module):
@@ -70,10 +70,11 @@ class LANLDataset(Dataset):
 
 def train():
     net = GRUNet(batch_size, feature_size, hidden_size, seq_length)
-    dataset = LANLDataset(train_pd, seq_length, step_length)
     val_size = 50085877
-    dataset_val = Subset(dataset, range(val_size))
-    dataset_train = Subset(dataset, range(val_size, len(dataset)))
+    train_pd = dataset_pd.iloc[val_size:, :]
+    val_pd = dataset_pd.iloc[:val_size, :]
+    dataset_train = LANLDataset(train_pd, seq_length, step_length)
+    dataset_val = LANLDataset(val_pd, seq_length, step_length)
 
     train_loader = torch.utils.data.DataLoader(
         dataset_train, batch_size = batch_size, shuffle = False, 
